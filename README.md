@@ -1,2 +1,1 @@
-# DSC
-PowerShell Desired State Configuration (DSC)
+# PowerShell Desired State Configuration (DSC)
