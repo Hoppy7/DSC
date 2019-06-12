@@ -31,6 +31,7 @@ configuration sqlAlwaysOnAvailabilityGroup
             RefreshFrequencyMins           = 30
         }
         
+        # TODO: Mountpoints?????
         # drive configuration
         # data drive
         WaitForDisk dataDrive
@@ -81,6 +82,15 @@ configuration sqlAlwaysOnAvailabilityGroup
             FSFormat           = "NTFS"
             AllocationUnitSize = 64kb
             DependsOn          = "[WaitForDisk]tempDbDrive"
+        }
+
+        # file firectory
+        File foobarDirectory
+        {
+            DestinationPath = "$($configurationData.nonNodeData.sqlDatadriveLetter):\foobar2"
+            Type            = "Directory"
+            Ensure          = "Present"
+            DependsOn       = "[Disk]dataDrive"
         }
 
         # windows features
@@ -216,7 +226,7 @@ configuration sqlAlwaysOnAvailabilityGroup
         }
 
         # sql login
-        SqlServerLogin sqlLogin
+        SqlServerLogin ClusSvc
         {
             Name                 = "NT SERVICE\ClusSvc"
             ServerName           = $configurationData.nonNodeData.primaryNode
@@ -228,14 +238,14 @@ configuration sqlAlwaysOnAvailabilityGroup
         }
 
         # Add the required permissions to the cluster service login
-        SqlServerPermission sqlPermissions
+        SqlServerPermission ClusSvc
         {
             ServerName           = $configurationData.nonNodeData.primaryNode
             InstanceName         = $configurationData.nonNodeData.sqlInstanceName
             Principal            = "NT SERVICE\ClusSvc"
             Permission           = "ConnectSql", "AlterAnyAvailabilityGroup", "ViewServerState"
             Ensure               = "Present"
-            DependsOn            = "[SqlServerLogin]sqlLogin"
+            DependsOn            = "[SqlServerLogin]ClusSvc"
             PsDscRunAsCredential = $domainAdmin
         }
         
@@ -260,10 +270,32 @@ configuration sqlAlwaysOnAvailabilityGroup
             Ensure       = "Present"
             DependsOn    = "[SqlSetup]sqlSetup"
         }
+
+        # disable windows firewall
+        Script DisableFirewall 
+        {
+            GetScript = {
+                @{
+                    GetScript = $GetScript
+                    SetScript = $SetScript
+                    TestScript = $TestScript
+                    Result = -not('True' -in (Get-NetFirewallProfile -All).Enabled)
+                }
+            }
+
+            SetScript = {
+                Set-NetFirewallProfile -All -Enabled False -Verbose
+            }
+
+            TestScript = {
+                $Status = -not('True' -in (Get-NetFirewallProfile -All).Enabled)
+                $Status -eq $True
+            }
+        }
     }
 
     # primary node
-    Node $AllNodes.Where{$_.role -contains "sqlAGPrimary"}.NodeName
+    Node $AllNodes.Where{$_.role -contains "Primary"}.NodeName
     {
         # cluster
         xCluster createCluster
@@ -345,7 +377,7 @@ configuration sqlAlwaysOnAvailabilityGroup
     }
 
     # secondary node
-    Node $AllNodes.Where{$_.role -contains "sqlAGSecondary"}.NodeName
+    Node $AllNodes.Where{$_.role -contains "Secondary"}.NodeName
     {   
         # windows features
         WindowsFeature RSAT-Clustering-CmdInterface
@@ -368,7 +400,7 @@ configuration sqlAlwaysOnAvailabilityGroup
         xCluster joinCluster
         {
             Name                          = $configurationData.nonNodeData.clusterName
-            StaticIPAddress               = $configurationData.nonNodeData.clusterIPandSubNetClass
+            StaticIPAddress               = $clusterIPandSubNetClass
             DomainAdministratorCredential = $domainAdmin
             DependsOn                     = "[xWaitForCluster]waitForCluster"
         }
@@ -380,7 +412,7 @@ configuration sqlAlwaysOnAvailabilityGroup
             ServerName           = $configurationData.nonNodeData.secondaryNode
             RestartTimeout       = 120
             Ensure               = "Present"
-            DependsOn            = "[xCluster]joinCluster"
+            DependsOn            = "[SqlSetup]sqlSetup", "[xCluster]joinCluster"
             PsDscRunAsCredential = $domainAdmin
         }
 
@@ -388,8 +420,9 @@ configuration sqlAlwaysOnAvailabilityGroup
         SqlWaitForAG waitForAvailabilityGroup
         {
             Name                 = $configurationData.nonNodeData.sqlAGName
-            RetryIntervalSec     = 30
-            RetryCount           = 40
+            RetryIntervalSec     = 20
+            RetryCount           = 30
+            DependsOn            = "[xCluster]joinCluster"
             PsDscRunAsCredential = $domainAdmin
         }
 
