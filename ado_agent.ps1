@@ -2,6 +2,7 @@ configuration ado_agent
 {
     Import-DscResource -ModuleName 'PSDesiredStateConfiguration';
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration';
+    Import-DscResource -ModuleName 'cChoco';
 
     $adoPat = Get-AutomationVariable -Name 'adoPat';
 
@@ -70,8 +71,9 @@ configuration ado_agent
                     return @{"Result" = $adoAgentService};
                 }
                 SetScript = {
-                    & "$($using:configurationData.AllNodes.agentPath + $using:i)\config.cmd" --unattended --url $using:configurationData.AllNodes.adoUrl --auth PAT --token $using:adoPat --pool $using:configurationData.AllNodes.adoAgentPool `
-                        --agent $($using:configurationData.AllNodes.adoAgentName + $using:i) --runAsService --windowsLogonAccount $using:configurationData.AllNodes.adoAgentAccount --work $($using:configurationData.AllNodes.agentPath + $using:i);
+                    & "$($using:configurationData.AllNodes.agentPath + $using:i)\config.cmd" --unattended --url $using:configurationData.AllNodes.adoUrl --auth PAT `
+                    --token $using:adoPat --pool $using:configurationData.AllNodes.adoAgentPool --agent $($using:configurationData.AllNodes.adoAgentName + $using:i) `
+                    --runAsService --windowsLogonAccount $using:configurationData.AllNodes.adoAgentAccount --work $($using:configurationData.AllNodes.agentPath + $using:i);
                 }
                 TestScript = {
                     $adoAgentService = Get-Service | ? {$_.Name -like "vstsagent*$($using:configurationData.AllNodes.adoAgentName + $using:i)"};
@@ -86,6 +88,75 @@ configuration ado_agent
                 }
                 DependsOn = "[xArchive]$("adoAgent" + $i)"
             }
+        }
+
+        Script installAzModules 
+        {
+            GetScript = {
+                [bool]$azModule = [bool]$(Get-Module -ListAvailable Az);
+                return @{"Result" = $azModule};
+            }
+            SetScript = {
+                Install-Module -Name Az -Force;
+            }
+            TestScript = {
+                $azModule = Get-Module -ListAvailable Az;
+                if ($azModule)
+                {
+                    return $true;
+                }                
+                else
+                {
+                    return $false;
+                }
+            }
+        }
+
+        cChocoInstaller installChocolatey
+        {
+            InstallDir = "C:\ProgramData\Chocolatey"
+        }
+
+        cChocoPackageInstaller visualstudio2019buildtools {
+            Name        = "visualstudio2019buildtools"
+            AutoUpgrade = $true
+            Ensure      = "Present"
+            DependsOn   = "[cChocoInstaller]installChocolatey"
+        }
+
+        cChocoPackageInstaller visualstudio2019netcorebuildtools {
+            Name        = "visualstudio2019-workload-netcorebuildtools"
+            AutoUpgrade = $true
+            Ensure      = "Present"
+            DependsOn   = "[cChocoInstaller]installChocolatey"
+        }
+
+        cChocoPackageInstaller visualstudio2019azurebuildtools {
+            Name        = "visualstudio2019-workload-azurebuildtools"
+            AutoUpgrade = $true
+            Ensure      = "Present"
+            DependsOn   = "[cChocoInstaller]installChocolatey"
+        }
+
+        cChocoPackageInstaller jmeter {
+            Name        = "jmeter"
+            AutoUpgrade = $true
+            Ensure      = "Present"
+            DependsOn   = "[cChocoInstaller]installChocolatey"
+        }
+
+        cChocoPackageInstaller azCli {
+            Name        = "azure-cli"
+            AutoUpgrade = $true
+            Ensure      = "Present"
+            DependsOn   = "[cChocoInstaller]installChocolatey"
+        }
+
+        cChocoPackageInstaller powershellCore {
+            Name        = "powershell-core"
+            AutoUpgrade = $true
+            Ensure      = "Present"
+            DependsOn   = "[cChocoInstaller]installChocolatey"
         }
     }
 }
