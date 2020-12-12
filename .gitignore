@@ -1,2 +1,2 @@
 # ignore configdata files
-*.configData.ps1
+#*.configData.ps1
