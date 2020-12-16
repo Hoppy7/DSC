@@ -1,4 +1,4 @@
-configuration ado_agent
+configuration azureDevOps
 {
     Import-DscResource -ModuleName 'PSDesiredStateConfiguration';
     Import-DscResource -ModuleName 'xPSDesiredStateConfiguration';
@@ -67,16 +67,21 @@ configuration ado_agent
             Script $("installAdoAgent" + $i)
             {
                 GetScript = {
-                    [bool]$adoAgentService = [bool]$(Get-Service | ? {$_.Name -like "vstsagent*$($using:configurationData.AllNodes.adoAgentName + $using:i)"});
+                    [bool]$adoAgentService = [bool]$(Get-Service | ? {$_.Name -like "vstsagent*$($env:COMPUTERNAME + "_agent" + $using:i)"});
                     return @{"Result" = $adoAgentService};
                 }
                 SetScript = {
                     & "$($using:configurationData.AllNodes.agentPath + $using:i)\config.cmd" --unattended --url $using:configurationData.AllNodes.adoUrl --auth PAT `
-                    --token $using:adoPat --pool $using:configurationData.AllNodes.adoAgentPool --agent $($using:configurationData.AllNodes.adoAgentName + $using:i) `
-                    --runAsService --windowsLogonAccount $using:configurationData.AllNodes.adoAgentAccount --work $($using:configurationData.AllNodes.agentPath + $using:i);
+                    --token $using:adoPat --pool $using:configurationData.AllNodes.adoAgentPool --agent $($env:COMPUTERNAME + "_agent" + $using:i) `
+                    --runAsService --windowsLogonAccount $using:configurationData.AllNodes.adoAgentAccount --work $("$using:configurationData.AllNodes.agentPath" + $using:i);
+
+                    if ($LASTEXITCODE -ne 0)
+                    {
+                        throw "Error installing ADO agent";
+                    }
                 }
                 TestScript = {
-                    $adoAgentService = Get-Service | ? {$_.Name -like "vstsagent*$($using:configurationData.AllNodes.adoAgentName + $using:i)"};
+                    $adoAgentService = Get-Service | ? {$_.Name -like "vstsagent*$($env:COMPUTERNAME + "_agent" + $using:i)"};
                     if ($adoAgentService)
                     {
                         return $true;
