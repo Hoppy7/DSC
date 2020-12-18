@@ -122,42 +122,48 @@ configuration azureDevOps
             InstallDir = "C:\ProgramData\Chocolatey"
         }
 
-        cChocoPackageInstaller visualstudio2019buildtools {
+        cChocoPackageInstaller visualstudio2019buildtools
+        {
             Name        = "visualstudio2019buildtools"
             AutoUpgrade = $true
             Ensure      = "Present"
             DependsOn   = "[cChocoInstaller]installChocolatey"
         }
 
-        cChocoPackageInstaller visualstudio2019netcorebuildtools {
+        cChocoPackageInstaller visualstudio2019netcorebuildtools
+        {
             Name        = "visualstudio2019-workload-netcorebuildtools"
             AutoUpgrade = $true
             Ensure      = "Present"
             DependsOn   = "[cChocoInstaller]installChocolatey"
         }
 
-        cChocoPackageInstaller visualstudio2019azurebuildtools {
+        cChocoPackageInstaller visualstudio2019azurebuildtools
+        {
             Name        = "visualstudio2019-workload-azurebuildtools"
             AutoUpgrade = $true
             Ensure      = "Present"
             DependsOn   = "[cChocoInstaller]installChocolatey"
         }
 
-        cChocoPackageInstaller jmeter {
+        cChocoPackageInstaller jmeter
+        {
             Name        = "jmeter"
             AutoUpgrade = $true
             Ensure      = "Present"
             DependsOn   = "[cChocoInstaller]installChocolatey"
         }
 
-        cChocoPackageInstaller azCli {
+        cChocoPackageInstaller azCli
+        {
             Name        = "azure-cli"
             AutoUpgrade = $true
             Ensure      = "Present"
             DependsOn   = "[cChocoInstaller]installChocolatey"
         }
 
-        cChocoPackageInstaller powershellCore {
+        cChocoPackageInstaller powershellCore
+        {
             Name        = "powershell-core"
             AutoUpgrade = $true
             Ensure      = "Present"
