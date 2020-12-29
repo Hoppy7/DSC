@@ -1,0 +1,7 @@
+@{
+    AllNodes = @(
+        @{
+            nodeName = "base"
+        }
+    )
+}
