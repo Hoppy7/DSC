@@ -73,7 +73,7 @@ configuration azureDevOps
                 SetScript = {
                     & "$($using:configurationData.AllNodes.agentPath + $using:i)\config.cmd" --unattended --url $using:configurationData.AllNodes.adoUrl --auth PAT `
                     --token $using:adoPat --pool $using:configurationData.AllNodes.adoAgentPool --agent $($env:COMPUTERNAME + "_agent" + $using:i) `
-                    --runAsService --windowsLogonAccount $using:configurationData.AllNodes.adoAgentAccount --work $("$using:configurationData.AllNodes.agentPath" + $using:i);
+                    --runAsService --windowsLogonAccount $using:configurationData.AllNodes.adoAgentAccount --work $($using:configurationData.AllNodes.agentPath + $using:i);
 
                     if ($LASTEXITCODE -ne 0)
                     {

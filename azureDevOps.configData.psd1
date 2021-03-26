@@ -7,7 +7,7 @@
             agentPath             = "F:\ado_agent"
             agentBits             = "adoAgent.zip"
             adoUrl                = "https://dev.azure.com/hoppy7"
-            adoAgentPool          = "ASEV3"
+            adoAgentPool          = "azDeploy"
             adoAgentAccount       = "NT Authority\System"
             adoAgentName          = "ado_agent"
         }
